@@ -1,299 +1,207 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard EVA - NASA Space Apps</title>
-    <style>
-        body {
-            margin: 0;
-            background-color: #0d1117;
-            color: #c9d1d9;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-        }
+import React, { useState } from 'react';
+import { 
+  User, Heart, Rocket, Globe, CircleAlert, 
+  Settings, Thermometer, Wind, Zap, ShieldAlert
+} from 'lucide-react';
 
-        button {
-            cursor: pointer;
-            background-color: #21262d;
-            color: #58a6ff;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            padding: 10px 15px;
-            font-weight: bold;
-            transition: 0.3s;
-        }
-        button:hover { background-color: #30363d; }
+export default function EvaDashboard() {
+  // Estados para el simulador
+  const [healthStatus, setHealthStatus] = useState<'optimal' | 'critical'>('optimal');
+  const [shipStatus, setShipStatus] = useState<'normal' | 'emergency'>('normal');
 
-        .main-container {
-            flex-grow: 1;
-            position: relative;
-            padding: 20px;
-        }
+  // Variables dinámicas basadas en el estado
+  const isEmergency = shipStatus === 'emergency';
+  const isCritical = healthStatus === 'critical';
+  const bgColor = isEmergency ? 'bg-[#3a0d0d]' : 'bg-slate-950';
+  const plantEmoji = isCritical ? '🥀' : '🌿';
 
-        .view {
-            display: none;
-            width: 100%;
-            height: 100%;
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        .view.active { display: flex; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  return (
+    <div className={`min-h-screen ${bgColor} text-slate-200 flex flex-col transition-colors duration-700 font-mono`}>
+      
+      {/* Controles del Simulador (Fuera de la UI del traje) */}
+      <div className="flex justify-center gap-4 p-4 border-b border-slate-800 bg-slate-900 z-50">
+        <span className="text-slate-400 my-auto mr-4">Control Misión:</span>
+        <button 
+          onClick={() => setHealthStatus(isCritical ? 'optimal' : 'critical')}
+          className={`px-4 py-2 rounded font-bold transition-all ${isCritical ? 'bg-green-600 hover:bg-green-500' : 'bg-yellow-600 hover:bg-yellow-500'}`}
+        >
+          {isCritical ? 'Restaurar Salud' : 'Forzar Salud Crítica'}
+        </button>
+        <button 
+          onClick={() => setShipStatus(isEmergency ? 'normal' : 'emergency')}
+          className={`px-4 py-2 rounded font-bold transition-all ${isEmergency ? 'bg-blue-600 hover:bg-blue-500' : 'bg-red-600 hover:bg-red-500'}`}
+        >
+          {isEmergency ? 'Reparar Nave' : 'Simular Falla CO2'}
+        </button>
+      </div>
 
-        /* --- FRAME 1: SALUD --- */
-        #frame-salud { justify-content: space-between; align-items: center; }
-        
-        .side-panel {
-            width: 250px;
-            background: #161b22;
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid #30363d;
-            height: 80%;
-        }
+      {/* Grid Principal tipo Pizarra (3 columnas x 2 filas) */}
+      <div className="flex-1 p-8 flex items-center justify-center">
+        <div className="grid grid-cols-1 lg:grid-cols-3 grid-rows-2 gap-10 w-full max-w-7xl h-[800px] relative">
+          
+          {/* LÍNEAS CONECTORAS ROJAS (Ocultas en móvil, visibles en desktop lg) */}
+          <div className="hidden lg:block absolute top-[25%] left-[33%] w-10 border-t-4 border-[#d32f2f] z-0"></div>
+          <div className="hidden lg:block absolute top-[25%] left-[66%] w-10 border-t-4 border-[#d32f2f] z-0"></div>
+          <div className="hidden lg:block absolute top-[25%] left-[33%] h-[50%] border-l-4 border-[#d32f2f] z-0"></div>
+          <div className="hidden lg:block absolute top-[75%] left-[33%] w-10 border-t-4 border-[#d32f2f] z-0"></div>
 
-        .human-body {
-            position: relative;
-            width: 300px;
-            height: 500px;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 200"><path d="M50 20a15 15 0 1 0 0-30 15 15 0 0 0 0 30zM25 50h50v60H25zM35 110v80h10v-80zM55 110v80h10v-80zM10 50v60h10V50zM80 50v60h10V50z" fill="%2330363d"/></svg>') no-repeat center center;
-            background-size: contain;
-        }
-
-        .node {
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background-color: #2ea043;
-            border: 2px solid #fff;
-            cursor: pointer;
-            box-shadow: 0 0 15px #2ea043;
-            transition: 0.3s;
-        }
-        .node:hover { transform: scale(1.2); }
-        
-        #node-head { top: 15%; left: 45%; }
-        #node-chest { top: 35%; left: 45%; }
-        #node-arm { top: 45%; left: 20%; }
-
-        /* --- FRAME 2: NAVE --- */
-        #frame-nave { flex-direction: column; align-items: center; justify-content: center; width: 100%;}
-        
-        .journey-map {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 80%;
-            margin-bottom: 50px;
-            position: relative;
-        }
-        
-        .journey-line {
-            position: absolute;
-            top: 50%; left: 5%; right: 5%;
-            height: 2px;
-            background-color: #30363d;
-            z-index: -1;
-        }
-
-        .planet { font-size: 50px; text-align: center; }
-        
-        .ship-btn {
-            font-size: 60px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            transition: transform 0.3s;
-            position: absolute;
-            left: 60%;
-            transform: translateX(-50%);
-        }
-        .ship-btn:hover { transform: translateX(-50%) scale(1.2) translateY(-10px); }
-
-        /* --- FRAME 3: PLANTA --- */
-        #frame-planta {
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border-radius: 20px;
-            transition: background-color 1s ease;
-            background-color: #0d1117;
-        }
-
-        #planta-emoji {
-            font-size: 150px;
-            transition: 0.5s;
-        }
-
-        /* --- SUB FRAMES (Modales) --- */
-        .sub-frame {
-            display: none;
-            position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: #161b22;
-            padding: 30px;
-            border: 2px solid #58a6ff;
-            border-radius: 12px;
-            z-index: 100;
-            width: 400px;
-            box-shadow: 0 0 30px rgba(0,0,0,0.8);
-        }
-        .close-btn { float: right; background: #da3633; color: white; border: none; padding: 5px 10px; }
-
-        /* --- NAVEGACIÓN INFERIOR --- */
-        .bottom-nav {
-            display: flex;
-            justify-content: space-around;
-            background-color: #161b22;
-            padding: 15px;
-            border-top: 1px solid #30363d;
-        }
-        .bottom-nav button { font-size: 18px; width: 30%; padding: 15px; }
-
-        .dev-controls {
-            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-            background: #21262d; padding: 10px; border-radius: 8px; display: flex; gap: 10px;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="dev-controls">
-        <small style="margin-right: 10px; margin-top: 5px;">Simulador:</small>
-        <button onclick="setEstado('salud', 'critico')">Bajar Salud</button>
-        <button onclick="setEstado('salud', 'optimo')">Salud Óptima</button>
-        <button onclick="setEstado('nave', 'emergencia')">Falla Nave</button>
-        <button onclick="setEstado('nave', 'normal')">Nave Normal</button>
-    </div>
-
-    <div class="main-container">
-        <!-- 1. SALUD -->
-        <div id="frame-salud" class="view active">
-            <div class="side-panel">
-                <h3>📋 Historial</h3>
-                <ul id="historial-lista">
-                    <li>14:00 - Nivel O2 estable.</li>
-                    <li>13:45 - Mediciones normales.</li>
-                </ul>
-                <button onclick="abrirSubFrame('sub-recomendaciones')">Ver Recomendaciones</button>
+          {/* 1. Panel Principal: Astronauta y Alertas */}
+          <div className="panel-card col-span-1 row-span-1 flex justify-between">
+            <div className="flex flex-col gap-3 mt-4">
+              <div className="w-8 h-1.5 bg-green-500 rounded"></div>
+              <div className="w-8 h-1.5 bg-yellow-500 rounded"></div>
+              <div className="w-8 h-1.5 bg-[#d32f2f] rounded"></div>
+              <div className="w-8 h-1.5 border border-[#1976D2] rounded"></div>
             </div>
-
-            <div class="human-body">
-                <div id="node-head" class="node" onclick="abrirSubFrame('sub-head')"></div>
-                <div id="node-chest" class="node" onclick="abrirSubFrame('sub-chest')"></div>
-                <div id="node-arm" class="node" onclick="abrirSubFrame('sub-arm')"></div>
+            <div className="flex-1 flex justify-center items-center">
+              <User size={100} className={isCritical ? 'text-red-500' : 'text-slate-300'} strokeWidth={1} />
             </div>
-
-            <div class="side-panel" style="border-color: #da3633;">
-                <h3 style="color: #da3633;">🚨 Urgencias</h3>
-                <p>Ninguna urgencia actual.</p>
-                <button style="background-color: #da3633; color: white;" onclick="abrirSubFrame('sub-urgencias')">Protocolo Emergencia</button>
+            <div className="flex flex-col gap-2">
+              <div className={`border-2 border-dashed ${isEmergency ? 'border-red-500 text-red-500' : 'border-[#1976D2] text-[#1976D2]'} p-2 text-center rounded h-24 flex flex-col justify-center items-center`}>
+                {isEmergency ? <ShieldAlert size={20} /> : <CircleAlert size={20} />}
+                <span className="text-xs mt-1 uppercase font-bold">{isEmergency ? 'PELIGRO' : 'alerta'}</span>
+              </div>
+              <div className="border border-[#1976D2] p-1 text-center text-xs">M</div>
+              <div className="border border-[#1976D2] p-1 text-center text-xs">C</div>
             </div>
-        </div>
+          </div>
 
-        <!-- 2. NAVE -->
-        <div id="frame-nave" class="view">
-            <h2>Trayectoria del Viaje</h2>
-            <div class="journey-map">
-                <div class="journey-line"></div>
-                <div class="planet">🌍<br><small style="font-size: 14px;">Tierra</small></div>
-                <button class="ship-btn" onclick="abrirSubFrame('sub-nave-interna')">🚀</button>
-                <div class="planet">🔴<br><small style="font-size: 14px;">Marte</small></div>
+          {/* 3. Panel de Vuelo/Navegación (Centro Arriba) */}
+          <div className="panel-card col-span-1 row-span-1 flex flex-col justify-center relative">
+            <div className="absolute top-4 left-4 text-3xl">🌍</div>
+            <div className="absolute top-4 right-4 text-3xl">🔴</div>
+            
+            <div className="w-full border-t-2 border-dashed border-slate-500 relative mt-4">
+              <Rocket 
+                size={50} 
+                className="absolute -top-6 left-1/2 -translate-x-1/2 text-slate-300" 
+                strokeWidth={1.5} 
+              />
             </div>
             
-            <div style="position: absolute; right: 40px; top: 100px;">
-                <button style="padding: 20px; font-size: 18px;" onclick="abrirSubFrame('sub-nave-externa')">🌌 Sensores Exterior</button>
+            <div className="flex justify-around w-full absolute bottom-6 px-4">
+              <div className="border border-[#1976D2] px-4 py-1 rounded text-xs text-[#d32f2f] font-bold">S/T</div>
+              <div className="border border-[#1976D2] px-4 py-1 rounded text-xs">A</div>
+              <div className="border border-[#1976D2] px-4 py-1 rounded text-xs">B</div>
             </div>
-        </div>
+          </div>
 
-        <!-- 3. PLANTA -->
-        <div id="frame-planta" class="view">
-            <h2 style="margin-bottom: 50px;">Soporte Vital y Estado Anímico</h2>
-            <div id="planta-emoji">🌸</div>
-            <h3 id="planta-status">La planta florece. Salud del tripulante óptima.</h3>
-        </div>
-    </div>
-
-    <nav class="bottom-nav">
-        <button onclick="cambiarMainFrame('frame-salud')">1. Salud Tripulante</button>
-        <button onclick="cambiarMainFrame('frame-nave')">2. Estado Nave</button>
-        <button onclick="cambiarMainFrame('frame-planta')">3. Módulo Botánico</button>
-    </nav>
-
-    <!-- Sub Frames -->
-    <div id="sub-head" class="sub-frame">
-        <button class="close-btn" onclick="cerrarSubFrame()">X</button>
-        <h3>Estado Neurológico/Psicológico</h3>
-        <p>Estrés: Bajo</p><p>Fatiga: 12%</p>
-    </div>
-    <div id="sub-chest" class="sub-frame">
-        <button class="close-btn" onclick="cerrarSubFrame()">X</button>
-        <h3>Cardiopulmonar</h3>
-        <p>BPM: 72 (Normal)</p><p>Saturación O2: 98%</p>
-    </div>
-    <div id="sub-nave-interna" class="sub-frame">
-        <button class="close-btn" onclick="cerrarSubFrame()">X</button>
-        <h3>Nave: Nivel Interno</h3>
-        <p>Niveles CO2: 0.04%</p>
-        <p>Presión Interna: 1 atm</p>
-        <p>Radiación Absorbida: 0.5 mSv</p>
-    </div>
-    <div id="sub-nave-externa" class="sub-frame">
-        <button class="close-btn" onclick="cerrarSubFrame()">X</button>
-        <h3>Nave: Entorno Exterior</h3>
-        <p>Presión Exterior: 0 atm (Vacío)</p>
-        <p>Temperatura: -270 °C</p>
-        <p>Radiación Solar: ALTA</p>
-    </div>
-
-    <script>
-        function cambiarMainFrame(idFrame) {
-            document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
-            document.getElementById(idFrame).classList.add('active');
-        }
-
-        function abrirSubFrame(idSub) {
-            cerrarSubFrame();
-            document.getElementById(idSub).style.display = 'block';
-        }
-
-        function cerrarSubFrame() {
-            document.querySelectorAll('.sub-frame').forEach(sub => sub.style.display = 'none');
-        }
-
-        function setEstado(tipo, estado) {
-            const plantaEmoji = document.getElementById('planta-emoji');
-            const plantaStatus = document.getElementById('planta-status');
-            const framePlanta = document.getElementById('frame-planta');
+          {/* 5. Sub-Panel Consola (Derecha Arriba) */}
+          <div className="panel-card col-span-1 row-span-1 bg-slate-900 border-[#d32f2f]">
+            <span className="sub-label">sub</span>
             
-            if (tipo === 'salud') {
-                const nodos = document.querySelectorAll('.node');
-                if (estado === 'critico') {
-                    document.getElementById('node-head').style.backgroundColor = '#d29922';
-                    document.getElementById('node-chest').style.backgroundColor = '#da3633';
-                    plantaEmoji.innerHTML = '🥀';
-                    plantaStatus.innerHTML = 'Tripulante en estado crítico. Planta marchitándose.';
-                } else {
-                    nodos.forEach(n => n.style.backgroundColor = '#2ea043');
-                    plantaEmoji.innerHTML = '🌸';
-                    plantaStatus.innerHTML = 'La planta florece. Salud del tripulante óptima.';
-                }
-            }
-            
-            if (tipo === 'nave') {
-                if (estado === 'emergencia') {
-                    framePlanta.style.backgroundColor = '#3a0d0d'; 
-                    document.getElementById('sub-nave-interna').innerHTML += '<p style="color:red">ALERTA: Fuga de CO2 detectada.</p>';
-                } else {
-                    framePlanta.style.backgroundColor = '#0d1117'; 
-                }
-            }
+            <div className="h-[45%] border-2 border-[#1976D2] rounded-t-full relative overflow-hidden bg-black">
+              {/* Estrellas simuladas */}
+              <div className="absolute top-[20%] left-[20%] text-[8px]">⭐</div>
+              <div className="absolute top-[60%] left-[70%] text-[12px]">✨</div>
+              <div className="absolute top-[40%] left-[40%] text-[10px]">⭐</div>
+              {isEmergency && <div className="absolute inset-0 bg-red-500/20 animate-pulse"></div>}
+            </div>
+
+            <div className="flex-1 flex items-center justify-between pt-4 px-2">
+              <div className="w-14 h-14 rounded-full border-2 border-slate-500 relative flex justify-center items-center">
+                <div className={`w-6 h-0.5 bg-[#d32f2f] origin-left rotate-[-45deg] ${isEmergency && 'animate-spin'}`}></div>
+              </div>
+              <div className="flex flex-col gap-3 w-1/2">
+                <div className="h-1 bg-[#1976D2] w-full"></div>
+                <div className="h-1 bg-[#1976D2] w-4/5"></div>
+                <div className="h-1 bg-[#1976D2] w-full"></div>
+                <div className="h-1 bg-[#1976D2] w-3/5"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Panel Biomédico (Abajo Izquierda) */}
+          <div className="panel-card col-span-1 row-span-1 flex items-center gap-6">
+            <Heart 
+              size={70} 
+              className={`text-[#d32f2f] ${isCritical ? 'animate-ping' : 'animate-pulse'}`} 
+              strokeWidth={1} 
+            />
+            <div className="flex flex-col gap-4 flex-1">
+              <div className="h-3 border border-slate-600 rounded-full overflow-hidden bg-slate-800">
+                <div className="h-full bg-[#d32f2f] transition-all duration-1000" style={{ width: isCritical ? '95%' : '75%' }}></div>
+              </div>
+              <div className="h-3 border border-slate-600 rounded-full overflow-hidden bg-slate-800">
+                <div className="h-full bg-[#d32f2f] transition-all duration-1000" style={{ width: isCritical ? '40%' : '60%' }}></div>
+              </div>
+              <div className="h-3 border border-slate-600 rounded-full overflow-hidden bg-slate-800">
+                <div className="h-full bg-[#d32f2f] transition-all duration-1000" style={{ width: isCritical ? '80%' : '95%' }}></div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Panel Planta / Soporte Vital (Centro Abajo) */}
+          <div className="panel-card col-span-1 row-span-1 flex flex-col items-center justify-center">
+            <div className="text-[100px] leading-none transition-all duration-1000">
+              {plantEmoji}
+            </div>
+            <div className="text-[50px] leading-none -mt-4">
+              🪴
+            </div>
+            <div className="flex justify-between w-full px-8 mt-6">
+              <div className="border border-[#1976D2] p-2 rounded"><Wind size={16} /></div>
+              <div className="border border-[#1976D2] p-2 rounded"><Thermometer size={16} /></div>
+              <div className="border border-[#d32f2f] p-2 rounded text-[#d32f2f]"><Settings size={16} /></div>
+            </div>
+          </div>
+
+          {/* 6. Sub-Panel Sensores P-T-R (Derecha Abajo) */}
+          <div className="panel-card col-span-1 row-span-1">
+            <span className="sub-label">sub</span>
+            <div className="h-full flex justify-around items-end pb-4 pt-8">
+              
+              {/* Barra Presión */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-32 border-2 border-[#d32f2f] rounded-full overflow-hidden bg-slate-900 relative">
+                  <div className="absolute bottom-0 w-full bg-[#d32f2f] transition-all duration-1000 striped-bg" 
+                       style={{ height: isEmergency ? '20%' : '50%' }}></div>
+                </div>
+                <span className="text-[#d32f2f] font-bold text-xl">P</span>
+              </div>
+
+              {/* Barra Temperatura */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-32 border-2 border-[#d32f2f] rounded-full overflow-hidden bg-slate-900 relative">
+                  <div className="absolute bottom-0 w-full bg-[#d32f2f] transition-all duration-1000 striped-bg" 
+                       style={{ height: isEmergency ? '95%' : '65%' }}></div>
+                </div>
+                <span className="text-[#d32f2f] font-bold text-xl">T</span>
+              </div>
+
+              {/* Barra Radiación */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-32 border-2 border-[#d32f2f] rounded-full overflow-hidden bg-slate-900 relative">
+                  <div className="absolute bottom-0 w-full bg-[#d32f2f] transition-all duration-1000 striped-bg" 
+                       style={{ height: isEmergency ? '70%' : '20%' }}></div>
+                </div>
+                <span className="text-[#d32f2f] font-bold text-xl">R</span>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Estilos CSS adicionales para efectos específicos que Tailwind no trae por defecto */}
+      <style>{`
+        .panel-card {
+          @apply bg-slate-950/50 border-[3px] border-[#d32f2f] rounded-xl p-4 shadow-[0_0_20px_rgba(211,47,47,0.15)] relative z-10 backdrop-blur-sm;
         }
-    </script>
-</body>
-</html>
+        .sub-label {
+          @apply absolute -top-4 left-1/2 -translate-x-1/2 text-[#d32f2f] font-bold text-xl px-2 italic bg-inherit;
+        }
+        .striped-bg {
+          background-image: repeating-linear-gradient(
+            0deg,
+            #d32f2f,
+            #d32f2f 2px,
+            transparent 2px,
+            transparent 4px
+          );
+        }
+      `}</style>
+    </div>
+  );
+}
