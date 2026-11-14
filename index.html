@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard EVA - NASA Space Apps</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        button {
+            cursor: pointer;
+            background-color: #21262d;
+            color: #58a6ff;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 10px 15px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        button:hover { background-color: #30363d; }
+
+        .main-container {
+            flex-grow: 1;
+            position: relative;
+            padding: 20px;
+        }
+
+        .view {
+            display: none;
+            width: 100%;
+            height: 100%;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .view.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- FRAME 1: SALUD --- */
+        #frame-salud { justify-content: space-between; align-items: center; }
+        
+        .side-panel {
+            width: 250px;
+            background: #161b22;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #30363d;
+            height: 80%;
+        }
+
+        .human-body {
+            position: relative;
+            width: 300px;
+            height: 500px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 200"><path d="M50 20a15 15 0 1 0 0-30 15 15 0 0 0 0 30zM25 50h50v60H25zM35 110v80h10v-80zM55 110v80h10v-80zM10 50v60h10V50zM80 50v60h10V50z" fill="%2330363d"/></svg>') no-repeat center center;
+            background-size: contain;
+        }
+
+        .node {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #2ea043;
+            border: 2px solid #fff;
+            cursor: pointer;
+            box-shadow: 0 0 15px #2ea043;
+            transition: 0.3s;
+        }
+        .node:hover { transform: scale(1.2); }
+        
+        #node-head { top: 15%; left: 45%; }
+        #node-chest { top: 35%; left: 45%; }
+        #node-arm { top: 45%; left: 20%; }
+
+        /* --- FRAME 2: NAVE --- */
+        #frame-nave { flex-direction: column; align-items: center; justify-content: center; width: 100%;}
+        
+        .journey-map {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 80%;
+            margin-bottom: 50px;
+            position: relative;
+        }
+        
+        .journey-line {
+            position: absolute;
+            top: 50%; left: 5%; right: 5%;
+            height: 2px;
+            background-color: #30363d;
+            z-index: -1;
+        }
+
+        .planet { font-size: 50px; text-align: center; }
+        
+        .ship-btn {
+            font-size: 60px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.3s;
+            position: absolute;
+            left: 60%;
+            transform: translateX(-50%);
+        }
+        .ship-btn:hover { transform: translateX(-50%) scale(1.2) translateY(-10px); }
+
+        /* --- FRAME 3: PLANTA --- */
+        #frame-planta {
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            transition: background-color 1s ease;
+            background-color: #0d1117;
+        }
+
+        #planta-emoji {
+            font-size: 150px;
+            transition: 0.5s;
+        }
+
+        /* --- SUB FRAMES (Modales) --- */
+        .sub-frame {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: #161b22;
+            padding: 30px;
+            border: 2px solid #58a6ff;
+            border-radius: 12px;
+            z-index: 100;
+            width: 400px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+        .close-btn { float: right; background: #da3633; color: white; border: none; padding: 5px 10px; }
+
+        /* --- NAVEGACIÓN INFERIOR --- */
+        .bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            background-color: #161b22;
+            padding: 15px;
+            border-top: 1px solid #30363d;
+        }
+        .bottom-nav button { font-size: 18px; width: 30%; padding: 15px; }
+
+        .dev-controls {
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            background: #21262d; padding: 10px; border-radius: 8px; display: flex; gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dev-controls">
+        <small style="margin-right: 10px; margin-top: 5px;">Simulador:</small>
+        <button onclick="setEstado('salud', 'critico')">Bajar Salud</button>
+        <button onclick="setEstado('salud', 'optimo')">Salud Óptima</button>
+        <button onclick="setEstado('nave', 'emergencia')">Falla Nave</button>
+        <button onclick="setEstado('nave', 'normal')">Nave Normal</button>
+    </div>
+
+    <div class="main-container">
+        <!-- 1. SALUD -->
+        <div id="frame-salud" class="view active">
+            <div class="side-panel">
+                <h3>📋 Historial</h3>
+                <ul id="historial-lista">
+                    <li>14:00 - Nivel O2 estable.</li>
+                    <li>13:45 - Mediciones normales.</li>
+                </ul>
+                <button onclick="abrirSubFrame('sub-recomendaciones')">Ver Recomendaciones</button>
+            </div>
+
+            <div class="human-body">
+                <div id="node-head" class="node" onclick="abrirSubFrame('sub-head')"></div>
+                <div id="node-chest" class="node" onclick="abrirSubFrame('sub-chest')"></div>
+                <div id="node-arm" class="node" onclick="abrirSubFrame('sub-arm')"></div>
+            </div>
+
+            <div class="side-panel" style="border-color: #da3633;">
+                <h3 style="color: #da3633;">🚨 Urgencias</h3>
+                <p>Ninguna urgencia actual.</p>
+                <button style="background-color: #da3633; color: white;" onclick="abrirSubFrame('sub-urgencias')">Protocolo Emergencia</button>
+            </div>
+        </div>
+
+        <!-- 2. NAVE -->
+        <div id="frame-nave" class="view">
+            <h2>Trayectoria del Viaje</h2>
+            <div class="journey-map">
+                <div class="journey-line"></div>
+                <div class="planet">🌍<br><small style="font-size: 14px;">Tierra</small></div>
+                <button class="ship-btn" onclick="abrirSubFrame('sub-nave-interna')">🚀</button>
+                <div class="planet">🔴<br><small style="font-size: 14px;">Marte</small></div>
+            </div>
+            
+            <div style="position: absolute; right: 40px; top: 100px;">
+                <button style="padding: 20px; font-size: 18px;" onclick="abrirSubFrame('sub-nave-externa')">🌌 Sensores Exterior</button>
+            </div>
+        </div>
+
+        <!-- 3. PLANTA -->
+        <div id="frame-planta" class="view">
+            <h2 style="margin-bottom: 50px;">Soporte Vital y Estado Anímico</h2>
+            <div id="planta-emoji">🌸</div>
+            <h3 id="planta-status">La planta florece. Salud del tripulante óptima.</h3>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <button onclick="cambiarMainFrame('frame-salud')">1. Salud Tripulante</button>
+        <button onclick="cambiarMainFrame('frame-nave')">2. Estado Nave</button>
+        <button onclick="cambiarMainFrame('frame-planta')">3. Módulo Botánico</button>
+    </nav>
+
+    <!-- Sub Frames -->
+    <div id="sub-head" class="sub-frame">
+        <button class="close-btn" onclick="cerrarSubFrame()">X</button>
+        <h3>Estado Neurológico/Psicológico</h3>
+        <p>Estrés: Bajo</p><p>Fatiga: 12%</p>
+    </div>
+    <div id="sub-chest" class="sub-frame">
+        <button class="close-btn" onclick="cerrarSubFrame()">X</button>
+        <h3>Cardiopulmonar</h3>
+        <p>BPM: 72 (Normal)</p><p>Saturación O2: 98%</p>
+    </div>
+    <div id="sub-nave-interna" class="sub-frame">
+        <button class="close-btn" onclick="cerrarSubFrame()">X</button>
+        <h3>Nave: Nivel Interno</h3>
+        <p>Niveles CO2: 0.04%</p>
+        <p>Presión Interna: 1 atm</p>
+        <p>Radiación Absorbida: 0.5 mSv</p>
+    </div>
+    <div id="sub-nave-externa" class="sub-frame">
+        <button class="close-btn" onclick="cerrarSubFrame()">X</button>
+        <h3>Nave: Entorno Exterior</h3>
+        <p>Presión Exterior: 0 atm (Vacío)</p>
+        <p>Temperatura: -270 °C</p>
+        <p>Radiación Solar: ALTA</p>
+    </div>
+
+    <script>
+        function cambiarMainFrame(idFrame) {
+            document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+            document.getElementById(idFrame).classList.add('active');
+        }
+
+        function abrirSubFrame(idSub) {
+            cerrarSubFrame();
+            document.getElementById(idSub).style.display = 'block';
+        }
+
+        function cerrarSubFrame() {
+            document.querySelectorAll('.sub-frame').forEach(sub => sub.style.display = 'none');
+        }
+
+        function setEstado(tipo, estado) {
+            const plantaEmoji = document.getElementById('planta-emoji');
+            const plantaStatus = document.getElementById('planta-status');
+            const framePlanta = document.getElementById('frame-planta');
+            
+            if (tipo === 'salud') {
+                const nodos = document.querySelectorAll('.node');
+                if (estado === 'critico') {
+                    document.getElementById('node-head').style.backgroundColor = '#d29922';
+                    document.getElementById('node-chest').style.backgroundColor = '#da3633';
+                    plantaEmoji.innerHTML = '🥀';
+                    plantaStatus.innerHTML = 'Tripulante en estado crítico. Planta marchitándose.';
+                } else {
+                    nodos.forEach(n => n.style.backgroundColor = '#2ea043');
+                    plantaEmoji.innerHTML = '🌸';
+                    plantaStatus.innerHTML = 'La planta florece. Salud del tripulante óptima.';
+                }
+            }
+            
+            if (tipo === 'nave') {
+                if (estado === 'emergencia') {
+                    framePlanta.style.backgroundColor = '#3a0d0d'; 
+                    document.getElementById('sub-nave-interna').innerHTML += '<p style="color:red">ALERTA: Fuga de CO2 detectada.</p>';
+                } else {
+                    framePlanta.style.backgroundColor = '#0d1117'; 
+                }
+            }
+        }
+    </script>
+</body>
+</html>
